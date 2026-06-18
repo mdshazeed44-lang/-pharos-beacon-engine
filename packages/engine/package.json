@@ -1,0 +1,10 @@
+{
+  "name": "@pharos/beacon-engine",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Pharos Beacon Generation Engine — data contract, vetted computation patterns, and the deterministic post-generation validator (SOW Workstream B, §3.3–3.6, §8).",
+  "scripts": {
+    "test": "node test/validator.test.ts"
+  }
+}
