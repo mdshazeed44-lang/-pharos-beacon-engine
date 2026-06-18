@@ -11,6 +11,9 @@ const anon = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
 export const LIVE = Boolean(url && anon);
 const client: SupabaseClient | null = LIVE ? createClient(url!, anon!) : null;
 
+/** Shared client for auth + authenticated dashboard queries (null in dev w/o creds). */
+export const supabase = client;
+
 /** Resolve a Beacon by its unguessable slug. */
 export async function getBeacon(slug: string): Promise<BeaconRow | null> {
   if (!LIVE || !client) return SEED[slug] ?? null;

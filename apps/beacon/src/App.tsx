@@ -6,6 +6,7 @@ import { getBeacon, LIVE } from "./supabase.ts";
 import { DEFAULT_SLUG } from "./seed.ts";
 import { createTracker, type TrackedEvent } from "./tracking.ts";
 import Beacon from "./Beacon.tsx";
+import AdminApp from "./Admin.tsx";
 
 function resolveSlug(): string {
   const path = window.location.pathname.match(/\/beacon\/([^/?#]+)/);
@@ -37,6 +38,10 @@ function AttributionPanel({ events }: { events: TrackedEvent[] }) {
 }
 
 export default function App() {
+  // /admin and /login → team dashboard (auth-gated). Everything else = public Beacon.
+  const path = window.location.pathname;
+  if (path.startsWith("/admin") || path.startsWith("/login")) return <AdminApp />;
+
   const slug = useMemo(resolveSlug, []);
   const tracker = useMemo(() => createTracker(slug), [slug]);
   const [row, setRow] = useState<BeaconRow | null | undefined>(undefined);
