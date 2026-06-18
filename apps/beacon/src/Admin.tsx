@@ -99,7 +99,7 @@ function Onboarding({ onDone }: { onDone: () => void }) {
   );
 }
 
-/* ---------------- Home: personalized page built from the profile ---------------- */
+/* ---------------- Home: personalized marketing landing page built from the profile ---------------- */
 function Home({ profile }: { profile: Profile }) {
   const [theme, setThemeState] = useState<string>(profile.theme || "ocean");
   const firstName = (profile.full_name || profile.email || "").trim().split(/[\s@]+/)[0] || "there";
@@ -116,69 +116,121 @@ function Home({ profile }: { profile: Profile }) {
     await setTheme(key);
   }
 
+  // Derive copy strictly from real profile fields — no fabricated claims/metrics.
+  const company = profile.company?.trim() || null;
+  const industry = profile.industry?.trim() || null;
+  const offering = profile.offering?.trim() || null;
+  const audience = profile.audience?.trim() || null;
+  const wordmark = company || "Your workspace";
+
   const website = profile.website?.trim() || null;
   const websiteHref = website
     ? (/^https?:\/\//i.test(website) ? website : `https://${website}`)
     : null;
+  const websiteLabel = website ? website.replace(/^https?:\/\//i, "").replace(/\/$/, "") : null;
+
+  // Hero headline: their value proposition (offering); fall back to company name.
+  const headline = offering || company || "Your workspace";
+  // Subhead: "{company} — built for {audience}." with graceful fallbacks.
+  let subhead: string | null = null;
+  if (company && audience) subhead = `${company} — built for ${audience}.`;
+  else if (audience) subhead = `Built for ${audience}.`;
+  else if (company) subhead = company;
 
   return (
-    <div className="dash">
-      <header className="dash-top">
-        <div className="brand"><span className="brand-name">Pharos</span></div>
-        <div className="dash-user">
-          <div className="theme-switch" role="group" aria-label="Color theme">
-            {THEME_KEYS.map(key => (
-              <button
-                key={key}
-                type="button"
-                className={`swatch ${theme === key ? "active" : ""}`}
-                style={{ background: THEMES[key]["--primary"] }}
-                title={THEME_LABELS[key]}
-                aria-label={THEME_LABELS[key]}
-                aria-pressed={theme === key}
-                onClick={() => pickTheme(key)}
-              />
-            ))}
+    <div className="lp">
+      {/* Slim sticky top bar */}
+      <header className="lp-bar">
+        <div className="lp-bar-inner">
+          <div className="lp-wordmark">
+            <span className="lp-mark">{wordmark}</span>
+            <span className="lp-hello">Welcome, {firstName}</span>
           </div>
-          <span className="dash-name">{profile.full_name || profile.email}</span>
-          <button className="ghost-btn" onClick={() => signOut()}>Sign out</button>
+          <div className="lp-bar-right">
+            <div className="theme-switch" role="group" aria-label="Color theme">
+              {THEME_KEYS.map(key => (
+                <button
+                  key={key}
+                  type="button"
+                  className={`swatch ${theme === key ? "active" : ""}`}
+                  style={{ background: THEMES[key]["--primary"] }}
+                  title={THEME_LABELS[key]}
+                  aria-label={THEME_LABELS[key]}
+                  aria-pressed={theme === key}
+                  onClick={() => pickTheme(key)}
+                />
+              ))}
+            </div>
+            <button className="ghost-btn" onClick={() => signOut()}>Sign out</button>
+          </div>
         </div>
       </header>
 
-      <main className="wrap dash-main">
-        <div className="home-hero">
-          <div className="greeting">Welcome, {firstName}</div>
-          <h1>
-            {profile.company || "Your workspace"}
-            {profile.industry ? <span className="hero-industry"> · {profile.industry}</span> : null}
-          </h1>
-          <p>Your personalised workspace, tuned to what you do and who you serve.</p>
-        </div>
-
-        <div className="home-grid">
-          <div className="home-card">
-            <div className="hc-label">Your company</div>
-            <div className="hc-value">{profile.company || "—"}</div>
-            {websiteHref && (
-              <a className="hc-link" href={websiteHref} target="_blank" rel="noreferrer">{website} ↗</a>
-            )}
+      <main>
+        {/* HERO */}
+        <section className="lp-hero">
+          <div className="lp-hero-inner">
+            {industry && <div className="lp-eyebrow">{industry}</div>}
+            <h1 className="lp-title">{headline}</h1>
+            {subhead && <p className="lp-sub">{subhead}</p>}
+            <div className="lp-actions">
+              {websiteHref ? (
+                <a className="lp-cta" href={websiteHref} target="_blank" rel="noreferrer">Get in touch</a>
+              ) : (
+                <a className="lp-cta" href="#contact">Get in touch</a>
+              )}
+              {websiteHref && (
+                <a className="lp-link" href={websiteHref} target="_blank" rel="noreferrer">
+                  {websiteLabel} ↗
+                </a>
+              )}
+            </div>
           </div>
+        </section>
 
-          <div className="home-card">
-            <div className="hc-label">Your industry</div>
-            <div className="hc-value">{profile.industry || "—"}</div>
-          </div>
+        {/* WHO IT'S FOR */}
+        {audience && (
+          <section className="lp-band">
+            <div className="lp-band-inner">
+              <div className="lp-kicker">Who it's for</div>
+              <p className="lp-band-text">{audience}</p>
+            </div>
+          </section>
+        )}
 
-          <div className="home-card">
-            <div className="hc-label">What you offer</div>
-            <div className="hc-text">{profile.offering || "—"}</div>
-          </div>
+        {/* WHAT WE DO */}
+        {(offering || industry) && (
+          <section className="lp-section">
+            <div className="lp-section-inner">
+              <div className="lp-kicker">What we do</div>
+              {offering && <p className="lp-lead">{offering}</p>}
+              {industry && (
+                <p className="lp-context">
+                  {company ? `${company} works in ${industry}.` : `Working in ${industry}.`}
+                </p>
+              )}
+            </div>
+          </section>
+        )}
 
-          <div className="home-card">
-            <div className="hc-label">Who you serve</div>
-            <div className="hc-text">{profile.audience || "—"}</div>
+        {/* CLOSING CTA */}
+        <section className="lp-closing" id="contact">
+          <div className="lp-closing-inner">
+            <h2 className="lp-closing-title">Ready when you are.</h2>
+            <div className="lp-actions lp-actions-center">
+              {websiteHref ? (
+                <a className="lp-cta" href={websiteHref} target="_blank" rel="noreferrer">Get in touch</a>
+              ) : (
+                <a className="lp-cta lp-cta-static" href="#contact">Get in touch</a>
+              )}
+              {websiteHref && (
+                <a className="lp-link lp-link-on-dark" href={websiteHref} target="_blank" rel="noreferrer">
+                  {websiteLabel} ↗
+                </a>
+              )}
+            </div>
           </div>
-        </div>
+        </section>
       </main>
     </div>
   );
