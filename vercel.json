@@ -1,0 +1,10 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": null,
+  "installCommand": "cd apps/beacon && npm install",
+  "buildCommand": "cd apps/beacon && npm run build",
+  "outputDirectory": "apps/beacon/dist",
+  "rewrites": [
+    { "source": "/(.*)", "destination": "/index.html" }
+  ]
+}
