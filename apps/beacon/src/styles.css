@@ -154,6 +154,11 @@ footer .badge{display:inline-block;border:1px solid var(--line-2);border-radius:
 .brand-name small{font-family:var(--sans);color:var(--secondary-deep);font-weight:700;font-size:9px;letter-spacing:2px;margin-left:6px}
 .dash-user{display:flex;align-items:center;gap:12px}
 .dash-name{font-size:13px;color:var(--ink-soft)}
+.theme-switch{display:flex;align-items:center;gap:6px}
+.swatch{width:22px;height:22px;border-radius:50%;padding:0;cursor:pointer;border:2px solid transparent;box-shadow:0 1px 3px rgba(0,0,0,.18);transition:transform .12s ease,border-color .12s ease}
+.swatch:hover{transform:scale(1.1)}
+.swatch.active{border:2px solid var(--primary-ink);transform:scale(1.15)}
+.greeting{font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--ink-dim);font-weight:700;margin-bottom:6px}
 .role-chip{font-size:10.5px;font-weight:800;letter-spacing:1px;text-transform:uppercase;padding:4px 10px;border-radius:999px}
 .role-chip[data-role=admin]{background:var(--primary);color:#fff}
 .role-chip[data-role=rep]{background:#eaf4fb;color:var(--secondary-deep);border:1px solid var(--line-2)}

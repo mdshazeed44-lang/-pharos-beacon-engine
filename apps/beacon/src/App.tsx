@@ -38,9 +38,10 @@ function AttributionPanel({ events }: { events: TrackedEvent[] }) {
 }
 
 export default function App() {
-  // /admin and /login → team dashboard (auth-gated). Everything else = public Beacon.
-  const path = window.location.pathname;
-  if (path.startsWith("/admin") || path.startsWith("/login")) return <AdminApp />;
+  // Public Beacon only renders with an explicit slug (/beacon/<slug> or ?slug=).
+  // Everything else (bare "/", /admin, /login) → the auth-gated team portal.
+  const hasSlug = /\/beacon\/[^/?#]+/.test(window.location.pathname) || new URLSearchParams(window.location.search).has("slug");
+  if (!hasSlug) return <AdminApp />;
 
   const slug = useMemo(resolveSlug, []);
   const tracker = useMemo(() => createTracker(slug), [slug]);

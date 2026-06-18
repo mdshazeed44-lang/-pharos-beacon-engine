@@ -2,7 +2,8 @@
 // admin: every beacon + generate + stats.  rep: only their assigned beacons.
 import { useEffect, useState } from "react";
 import { supabase } from "./supabase.ts";
-import { signIn, signOut, getProfile, onAuthChange, type Profile } from "./auth.ts";
+import { signIn, signOut, getProfile, onAuthChange, setTheme, type Profile } from "./auth.ts";
+import { applyTheme, THEME_KEYS, THEME_LABELS, THEMES, type ThemeKey } from "./themes.ts";
 
 interface BeaconRow {
   beacon_slug: string; company_name: string; generation_status: string;
@@ -14,6 +15,7 @@ interface BeaconRow {
 function Login() {
   const [email, setEmail] = useState(""); const [pw, setPw] = useState("");
   const [err, setErr] = useState<string | null>(null); const [busy, setBusy] = useState(false);
+  useEffect(() => { applyTheme("ocean"); }, []);
   async function submit(e: React.FormEvent) {
     e.preventDefault(); setBusy(true); setErr(null);
     const { error } = await signIn(email.trim(), pw);
@@ -36,7 +38,17 @@ function Login() {
 
 function Dashboard({ profile }: { profile: Profile }) {
   const [rows, setRows] = useState<BeaconRow[] | null>(null);
+  const [theme, setThemeState] = useState<string>(profile.theme || "ocean");
   const isAdmin = profile.role === "admin";
+  const firstName = (profile.full_name || profile.email || "").trim().split(/[\s@]+/)[0] || "there";
+
+  useEffect(() => { applyTheme(profile.theme || "ocean"); setThemeState(profile.theme || "ocean"); }, [profile.theme]);
+
+  async function pickTheme(key: ThemeKey) {
+    applyTheme(key);
+    setThemeState(key);
+    await setTheme(key);
+  }
 
   useEffect(() => {
     if (!supabase) return;
@@ -55,6 +67,20 @@ function Dashboard({ profile }: { profile: Profile }) {
       <header className="dash-top">
         <div className="brand"><span className="brand-name">Pharos<small>BEACON</small></span></div>
         <div className="dash-user">
+          <div className="theme-switch" role="group" aria-label="Color theme">
+            {THEME_KEYS.map(key => (
+              <button
+                key={key}
+                type="button"
+                className={`swatch ${theme === key ? "active" : ""}`}
+                style={{ background: THEMES[key]["--primary"] }}
+                title={THEME_LABELS[key]}
+                aria-label={THEME_LABELS[key]}
+                aria-pressed={theme === key}
+                onClick={() => pickTheme(key)}
+              />
+            ))}
+          </div>
           <span className="role-chip" data-role={profile.role}>{profile.role === "admin" ? "Admin" : "Sales Rep"}</span>
           <span className="dash-name">{profile.full_name || profile.email}</span>
           <button className="ghost-btn" onClick={() => signOut()}>Sign out</button>
@@ -64,6 +90,7 @@ function Dashboard({ profile }: { profile: Profile }) {
       <main className="wrap dash-main">
         {/* ----- role-specific heading ----- */}
         <div className="dash-head">
+          <div className="greeting">Welcome back, {firstName}</div>
           <h1>{isAdmin ? "All Beacons" : "Your assigned Beacons"}</h1>
           <p>{isAdmin
             ? "Every account in the engine. Generate, monitor and attribute."

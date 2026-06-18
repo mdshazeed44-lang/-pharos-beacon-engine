@@ -2,7 +2,7 @@
 import { supabase } from "./supabase.ts";
 
 export type Role = "admin" | "rep";
-export interface Profile { id: string; email: string; full_name: string | null; role: Role; }
+export interface Profile { id: string; email: string; full_name: string | null; role: Role; theme?: string; }
 
 export async function signIn(email: string, password: string): Promise<{ error: string | null }> {
   if (!supabase) return { error: "Auth unavailable (no Supabase credentials configured)." };
@@ -28,11 +28,20 @@ export async function getProfile(): Promise<Profile | null> {
   if (!uid) return null;
   const { data, error } = await supabase
     .from("profiles")
-    .select("id, email, full_name, role")
+    .select("id, email, full_name, role, theme")
     .eq("id", uid)
     .single();
   if (error) { console.error("profile load failed", error); return null; }
   return data as Profile;
+}
+
+/** Persist the signed-in user's theme preference. */
+export async function setTheme(theme: string): Promise<void> {
+  if (!supabase) return;
+  const { data } = await supabase.auth.getSession();
+  const uid = data.session?.user?.id;
+  if (!uid) return;
+  await supabase.from("profiles").update({ theme }).eq("id", uid);
 }
 
 export function onAuthChange(cb: () => void): () => void {

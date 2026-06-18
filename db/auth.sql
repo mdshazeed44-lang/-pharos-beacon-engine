@@ -10,6 +10,7 @@ create table if not exists public.profiles (
   email       text,
   full_name   text,
   role        text not null default 'rep' check (role in ('admin','rep')),
+  theme       text not null default 'ocean',   -- per-user color scheme (drives the personalised UI)
   created_at  timestamptz not null default now()
 );
 
@@ -54,4 +55,5 @@ create policy "admin reads all beacons"     on public.beacons for select to auth
 create policy "rep reads assigned beacons"  on public.beacons for select to authenticated using (assigned_to = auth.uid());
 
 grant select on public.profiles to authenticated;
+grant update (theme) on public.profiles to authenticated;  -- users can change their own color scheme
 grant select on public.beacons  to authenticated;
