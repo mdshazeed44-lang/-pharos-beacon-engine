@@ -2,8 +2,8 @@
 // Auth (sign in OR create account) → Onboarding (if not onboarded) → personalized Home.
 import { useEffect, useState } from "react";
 import { supabase } from "./supabase.ts";
-import { signIn, signUp, signOut, getProfile, saveOnboarding, onAuthChange, setTheme, type Profile } from "./auth.ts";
-import { applyTheme, THEME_KEYS, THEME_LABELS, THEMES, type ThemeKey } from "./themes.ts";
+import { signIn, signUp, signOut, getProfile, saveOnboarding, onAuthChange, type Profile } from "./auth.ts";
+import { applyTheme, pickTheme } from "./themes.ts";
 
 /* ---------------- Auth: sign in OR create account ---------------- */
 function AuthScreen() {
@@ -101,20 +101,10 @@ function Onboarding({ onDone }: { onDone: () => void }) {
 
 /* ---------------- Home: personalized marketing landing page built from the profile ---------------- */
 function Home({ profile }: { profile: Profile }) {
-  const [theme, setThemeState] = useState<string>(profile.theme || "ocean");
-  const firstName = (profile.full_name || profile.email || "").trim().split(/[\s@]+/)[0] || "there";
-
+  // Color is auto-decided per user from a stable seed — no theme-switcher UI.
   useEffect(() => {
-    const t = profile.theme || "ocean";
-    applyTheme(t);
-    setThemeState(t);
-  }, [profile.theme]);
-
-  async function pickTheme(key: ThemeKey) {
-    applyTheme(key);
-    setThemeState(key);
-    await setTheme(key);
-  }
+    applyTheme(pickTheme(profile.company || profile.email || profile.id));
+  }, [profile.company, profile.email, profile.id]);
 
   // Derive copy strictly from real profile fields — no fabricated claims/metrics.
   const company = profile.company?.trim() || null;
@@ -131,76 +121,94 @@ function Home({ profile }: { profile: Profile }) {
 
   // Hero headline: their value proposition (offering); fall back to company name.
   const headline = offering || company || "Your workspace";
-  // Subhead: "{company} — built for {audience}." with graceful fallbacks.
+  // Subhead: "{company} helps {audience}." with graceful fallbacks.
   let subhead: string | null = null;
-  if (company && audience) subhead = `${company} — built for ${audience}.`;
+  if (company && audience) subhead = `${company} helps ${audience}.`;
+  else if (company && offering) subhead = `${company} — what we do, made clear.`;
   else if (audience) subhead = `Built for ${audience}.`;
   else if (company) subhead = company;
 
+  // Positioning one-liner for the value band.
+  let positioning: string | null = null;
+  if (audience) positioning = `Built for ${audience}.`;
+  else if (industry) positioning = `Built for ${industry}.`;
+  else if (company) positioning = `This is ${company}.`;
+
+  // Three honest benefit angles, only included when their source field exists.
+  const benefits: { n: string; title: string; body: string }[] = [];
+  if (audience) benefits.push({ n: "01", title: "Made for you", body: `Focused on ${audience}.` });
+  if (industry) benefits.push({ n: "02", title: `Rooted in ${industry}`, body: `We work in ${industry} and build around it.` });
+  if (offering) benefits.push({ n: "03", title: company ? `From ${company}` : "What we offer", body: offering });
+  // Backfill so the grid always shows 3 when we have any data to show.
+  if (benefits.length > 0) {
+    if (benefits.length < 3 && company) benefits.push({ n: String(benefits.length + 1).padStart(2, "0"), title: company, body: `Get in touch to learn more about ${company}.` });
+    if (benefits.length < 3 && offering) benefits.push({ n: String(benefits.length + 1).padStart(2, "0"), title: "What we offer", body: offering });
+  }
+  const benefits3 = benefits.slice(0, 3);
+
+  // "Who it's for" supportive bullets, derived honestly.
+  const forBullets: string[] = [];
+  if (audience) forBullets.push(`If you're ${audience}, this is built with you in mind.`);
+  if (offering) forBullets.push("Clear about what we do — no guesswork.");
+  if (industry) forBullets.push(`Grounded in ${industry}.`);
+
+  // "How it works" numbered points.
+  const steps: string[] = ["Understand your needs"];
+  if (industry) steps.push(`Tailored to ${industry}`);
+  if (audience) steps.push(`Built around ${audience}`);
+  else if (offering) steps.push("Delivered through what we do best");
+  while (steps.length < 3) steps.push("Stay in touch as things grow");
+  const steps3 = steps.slice(0, 3);
+
+  function Cta({ label = "Get in touch", secondary = false }: { label?: string; secondary?: boolean }) {
+    const cls = secondary ? "lp-cta lp-cta-secondary" : "lp-cta";
+    return websiteHref
+      ? <a className={cls} href={websiteHref} target="_blank" rel="noreferrer">{label}</a>
+      : <a className={cls} href="#contact">{label}</a>;
+  }
+
   return (
     <div className="lp">
-      {/* Slim sticky top bar */}
+      {/* Sticky top nav */}
       <header className="lp-bar">
         <div className="lp-bar-inner">
           <div className="lp-wordmark">
             <span className="lp-mark">{wordmark}</span>
-            <span className="lp-hello">Welcome, {firstName}</span>
           </div>
-          <div className="lp-bar-right">
-            <div className="theme-switch" role="group" aria-label="Color theme">
-              {THEME_KEYS.map(key => (
-                <button
-                  key={key}
-                  type="button"
-                  className={`swatch ${theme === key ? "active" : ""}`}
-                  style={{ background: THEMES[key]["--primary"] }}
-                  title={THEME_LABELS[key]}
-                  aria-label={THEME_LABELS[key]}
-                  aria-pressed={theme === key}
-                  onClick={() => pickTheme(key)}
-                />
-              ))}
-            </div>
-            <button className="ghost-btn" onClick={() => signOut()}>Sign out</button>
-          </div>
+          <nav className="lp-bar-right">
+            <Cta />
+            <button className="lp-signout" onClick={() => signOut()}>Sign out</button>
+          </nav>
         </div>
       </header>
 
       <main>
         {/* HERO */}
         <section className="lp-hero">
+          <div className="lp-hero-bg" aria-hidden="true" />
           <div className="lp-hero-inner">
             {industry && <div className="lp-eyebrow">{industry}</div>}
             <h1 className="lp-title">{headline}</h1>
             {subhead && <p className="lp-sub">{subhead}</p>}
             <div className="lp-actions">
-              {websiteHref ? (
-                <a className="lp-cta" href={websiteHref} target="_blank" rel="noreferrer">Get in touch</a>
-              ) : (
-                <a className="lp-cta" href="#contact">Get in touch</a>
-              )}
-              {websiteHref && (
-                <a className="lp-link" href={websiteHref} target="_blank" rel="noreferrer">
-                  {websiteLabel} ↗
-                </a>
-              )}
+              <Cta />
+              <a className="lp-cta lp-cta-secondary" href="#what">See how</a>
             </div>
           </div>
         </section>
 
-        {/* WHO IT'S FOR */}
-        {audience && (
-          <section className="lp-band">
-            <div className="lp-band-inner">
-              <div className="lp-kicker">Who it's for</div>
-              <p className="lp-band-text">{audience}</p>
+        {/* VALUE BAND */}
+        {positioning && (
+          <section className="lp-value">
+            <div className="lp-value-inner">
+              <p className="lp-value-text">{positioning}</p>
             </div>
           </section>
         )}
 
         {/* WHAT WE DO */}
         {(offering || industry) && (
-          <section className="lp-section">
+          <section className="lp-section" id="what">
             <div className="lp-section-inner">
               <div className="lp-kicker">What we do</div>
               {offering && <p className="lp-lead">{offering}</p>}
@@ -213,16 +221,58 @@ function Home({ profile }: { profile: Profile }) {
           </section>
         )}
 
-        {/* CLOSING CTA */}
+        {/* BENEFITS */}
+        {benefits3.length > 0 && (
+          <section className="lp-section lp-section-alt">
+            <div className="lp-section-inner lp-wide">
+              <div className="lp-kicker">Why it works</div>
+              <div className="lp-cards">
+                {benefits3.map(b => (
+                  <article className="lp-card" key={b.n}>
+                    <div className="lp-card-num">{b.n}</div>
+                    <h3 className="lp-card-title">{b.title}</h3>
+                    <p className="lp-card-body">{b.body}</p>
+                  </article>
+                ))}
+              </div>
+            </div>
+          </section>
+        )}
+
+        {/* WHO IT'S FOR */}
+        {(audience && forBullets.length > 0) && (
+          <section className="lp-section">
+            <div className="lp-section-inner">
+              <div className="lp-kicker">Who it's for</div>
+              <p className="lp-lead">{audience}</p>
+              <ul className="lp-bullets">
+                {forBullets.map((b, i) => <li key={i}>{b}</li>)}
+              </ul>
+            </div>
+          </section>
+        )}
+
+        {/* HOW IT WORKS */}
+        <section className="lp-section lp-section-alt">
+          <div className="lp-section-inner">
+            <div className="lp-kicker">{company ? `Why ${company}` : "How it works"}</div>
+            <ol className="lp-steps">
+              {steps3.map((s, i) => (
+                <li className="lp-step" key={i}>
+                  <span className="lp-step-num">{i + 1}</span>
+                  <span className="lp-step-text">{s}</span>
+                </li>
+              ))}
+            </ol>
+          </div>
+        </section>
+
+        {/* FINAL CTA */}
         <section className="lp-closing" id="contact">
           <div className="lp-closing-inner">
-            <h2 className="lp-closing-title">Ready when you are.</h2>
+            <h2 className="lp-closing-title">Ready to get started?</h2>
             <div className="lp-actions lp-actions-center">
-              {websiteHref ? (
-                <a className="lp-cta" href={websiteHref} target="_blank" rel="noreferrer">Get in touch</a>
-              ) : (
-                <a className="lp-cta lp-cta-static" href="#contact">Get in touch</a>
-              )}
+              <Cta />
               {websiteHref && (
                 <a className="lp-link lp-link-on-dark" href={websiteHref} target="_blank" rel="noreferrer">
                   {websiteLabel} ↗
@@ -232,6 +282,20 @@ function Home({ profile }: { profile: Profile }) {
           </div>
         </section>
       </main>
+
+      {/* FOOTER */}
+      <footer className="lp-footer">
+        <div className="lp-footer-inner">
+          <span className="lp-footer-mark">{wordmark}</span>
+          <div className="lp-footer-meta">
+            {websiteHref && (
+              <a className="lp-footer-link" href={websiteHref} target="_blank" rel="noreferrer">{websiteLabel} ↗</a>
+            )}
+            {company && <span className="lp-footer-copy">© 2026 {company}</span>}
+            <button className="lp-signout" onClick={() => signOut()}>Sign out</button>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }

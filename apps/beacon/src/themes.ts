@@ -81,3 +81,6 @@ export function applyTheme(key: string) {
   const t = THEMES[(key as ThemeKey)] ?? THEMES.ocean;
   for (const [k, v] of Object.entries(t)) document.documentElement.style.setProperty(k, v);
 }
+
+// Deterministically pick a theme from a seed string (auto-decided per user, no UI).
+export function pickTheme(seed: string): ThemeKey { let h=0; const s=(seed||"default"); for(let i=0;i<s.length;i++){ h=(h*31 + s.charCodeAt(i))>>>0; } return THEME_KEYS[h % THEME_KEYS.length]; }
