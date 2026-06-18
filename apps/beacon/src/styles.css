@@ -163,6 +163,20 @@ footer .badge{display:inline-block;border:1px solid var(--line-2);border-radius:
 .onboard-card input:focus,.onboard-card textarea:focus{outline:none;border-color:var(--secondary);background:#fff}
 .onboard-card .btn{margin-top:6px;justify-content:center;width:100%;min-height:48px}
 
+/* gender (segmented radio row) + age (select) */
+.ob-field{display:flex;flex-direction:column;gap:6px;font-size:12.5px;color:var(--ink-soft);font-weight:600;border:0;padding:0;margin:0;min-width:0}
+.ob-field legend{padding:0;margin-bottom:6px;font-size:12.5px;color:var(--ink-soft);font-weight:600}
+.ob-segment{display:flex;gap:10px;flex-wrap:wrap}
+.ob-seg-option{flex:1 1 0;min-width:120px;display:flex;align-items:center;justify-content:center;gap:8px;
+  min-height:44px;padding:10px 14px;border:1px solid var(--line-2);border-radius:10px;background:var(--surface-2);
+  color:var(--ink);font-size:15px;font-weight:600;cursor:pointer;transition:border-color .15s ease,background .15s ease}
+.ob-seg-option:hover{border-color:var(--secondary)}
+.ob-seg-option.active{border-color:var(--secondary-deep);background:#fff;color:var(--primary-ink);box-shadow:var(--shadow-sm)}
+.ob-seg-option input{position:absolute;opacity:0;width:0;height:0;margin:0}
+.ob-select{width:100%;min-height:44px;padding:12px 13px;border:1px solid var(--line-2);border-radius:10px;
+  font-size:16px;background:var(--surface-2);color:var(--ink);font-family:var(--sans);cursor:pointer}
+.ob-select:focus{outline:none;border-color:var(--secondary);background:#fff}
+
 /* shared sign-out (auth/onboarding) */
 .ghost-btn{background:none;border:1px solid var(--line-2);color:var(--ink-soft);font-size:13px;padding:7px 13px;border-radius:9px;cursor:pointer;white-space:nowrap}
 .ghost-btn:hover{border-color:var(--secondary);color:var(--primary-ink)}
@@ -214,6 +228,8 @@ footer .badge{display:inline-block;border:1px solid var(--line-2);border-radius:
   overflow-wrap:break-word;word-break:break-word}
 .lp-sub{margin:clamp(18px,3vw,26px) auto 0;max-width:58ch;color:var(--ink-soft);
   font-size:clamp(15px,2.6vw,19px);line-height:1.55}
+.lp-note{margin:10px auto 0;max-width:52ch;color:var(--secondary-deep);font-weight:600;
+  font-size:clamp(13px,2.2vw,16px);line-height:1.5}
 .lp-actions{display:flex;flex-wrap:wrap;gap:14px;align-items:center;justify-content:center;margin-top:clamp(24px,4vw,34px)}
 .lp-actions-center{justify-content:center}
 

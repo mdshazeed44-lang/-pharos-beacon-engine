@@ -84,3 +84,14 @@ export function applyTheme(key: string) {
 
 // Deterministically pick a theme from a seed string (auto-decided per user, no UI).
 export function pickTheme(seed: string): ThemeKey { let h=0; const s=(seed||"default"); for(let i=0;i<s.length;i++){ h=(h*31 + s.charCodeAt(i))>>>0; } return THEME_KEYS[h % THEME_KEYS.length]; }
+
+// Color now depends on gender (warm/cool family) + age (offset within family) + company (stable hash).
+const WARM: ThemeKey[] = ["sunset","rose","royal"];
+const COOL: ThemeKey[] = ["ocean","forest","slate"];
+const AGE_INDEX: Record<string, number> = {"18-24":0,"25-34":1,"35-44":2,"45-54":3,"55+":4};
+export function pickThemeFor(p: {gender?:string|null; age_group?:string|null; company?:string|null; email?:string|null; id?:string}): ThemeKey {
+  const group = p.gender==="female" ? WARM : p.gender==="male" ? COOL : THEME_KEYS;
+  const ageIdx = AGE_INDEX[p.age_group||""] ?? 2;
+  let h=0; const s=(p.company||p.email||p.id||"default"); for(let i=0;i<s.length;i++){h=(h*31+s.charCodeAt(i))>>>0;}
+  return group[(ageIdx + h) % group.length];
+}

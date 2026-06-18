@@ -17,6 +17,8 @@ create table if not exists public.profiles (
   industry    text,
   offering    text,                              -- what the user offers
   audience    text,                              -- who their customers are
+  gender      text,                              -- male/female (drives colour family)
+  age_group   text,                              -- 18-24 … 55+ (drives content tone)
   onboarded   boolean not null default false,
   created_at  timestamptz not null default now()
 );
@@ -63,5 +65,5 @@ create policy "rep reads assigned beacons"  on public.beacons for select to auth
 
 grant select on public.profiles to authenticated;
 -- users can update their own onboarding details + theme (NOT role — no self-escalation)
-grant update (theme, full_name, company, website, industry, offering, audience, onboarded) on public.profiles to authenticated;
+grant update (theme, full_name, company, website, industry, offering, audience, gender, age_group, onboarded) on public.profiles to authenticated;
 grant select on public.beacons  to authenticated;

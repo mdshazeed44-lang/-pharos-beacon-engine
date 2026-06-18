@@ -13,6 +13,8 @@ export interface Profile {
   industry: string | null;
   offering: string | null;
   audience: string | null;
+  gender?: string;
+  age_group?: string;
   onboarded: boolean;
 }
 
@@ -47,7 +49,7 @@ export async function getProfile(): Promise<Profile | null> {
   if (!uid) return null;
   const { data, error } = await supabase
     .from("profiles")
-    .select("id, email, full_name, role, theme, company, website, industry, offering, audience, onboarded")
+    .select("id, email, full_name, role, theme, company, website, industry, offering, audience, gender, age_group, onboarded")
     .eq("id", uid)
     .single();
   if (error) { console.error("profile load failed", error); return null; }
@@ -62,6 +64,8 @@ export async function saveOnboarding(d: {
   industry: string;
   offering: string;
   audience: string;
+  gender: string;
+  age_group: string;
 }): Promise<{ error: string | null }> {
   if (!supabase) return { error: "Auth unavailable (no Supabase credentials configured)." };
   const { data } = await supabase.auth.getSession();

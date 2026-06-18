@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "./supabase.ts";
 import { signIn, signUp, signOut, getProfile, saveOnboarding, onAuthChange, type Profile } from "./auth.ts";
-import { applyTheme, pickTheme } from "./themes.ts";
+import { applyTheme, pickTheme, pickThemeFor } from "./themes.ts";
 
 /* ---------------- Auth: sign in OR create account ---------------- */
 function AuthScreen() {
@@ -59,8 +59,12 @@ function Onboarding({ onDone }: { onDone: () => void }) {
   const [industry, setIndustry] = useState("");
   const [offering, setOffering] = useState("");
   const [audience, setAudience] = useState("");
+  const [gender, setGender] = useState("");
+  const [age_group, setAgeGroup] = useState("");
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+
+  const AGE_OPTIONS = ["18-24", "25-34", "35-44", "45-54", "55+"];
 
   // Keep the current theme applied; default to ocean on a fresh load.
   useEffect(() => { applyTheme("ocean"); }, []);
@@ -74,6 +78,8 @@ function Onboarding({ onDone }: { onDone: () => void }) {
       industry: industry.trim(),
       offering: offering.trim(),
       audience: audience.trim(),
+      gender,
+      age_group,
     });
     setBusy(false);
     if (error) { setErr(error); return; }
@@ -92,6 +98,24 @@ function Onboarding({ onDone }: { onDone: () => void }) {
         <label>Industry<input value={industry} onChange={e => setIndustry(e.target.value)} placeholder="SaaS, retail, healthcare…" required /></label>
         <label>What do you offer?<textarea value={offering} onChange={e => setOffering(e.target.value)} placeholder="Describe your product or service." rows={3} required /></label>
         <label>Who are your customers?<textarea value={audience} onChange={e => setAudience(e.target.value)} placeholder="Describe the people or businesses you serve." rows={3} required /></label>
+        <fieldset className="ob-field">
+          <legend>Gender</legend>
+          <div className="ob-segment" role="radiogroup" aria-label="Gender">
+            {[{ v: "male", l: "Male" }, { v: "female", l: "Female" }].map(o => (
+              <label key={o.v} className={`ob-seg-option ${gender === o.v ? "active" : ""}`}>
+                <input type="radio" name="gender" value={o.v} checked={gender === o.v}
+                  onChange={e => setGender(e.target.value)} required />
+                <span>{o.l}</span>
+              </label>
+            ))}
+          </div>
+        </fieldset>
+        <label className="ob-field">Age group
+          <select className="ob-select" value={age_group} onChange={e => setAgeGroup(e.target.value)} required>
+            <option value="" disabled>Select your age group</option>
+            {AGE_OPTIONS.map(a => <option key={a} value={a}>{a}</option>)}
+          </select>
+        </label>
         {err && <div className="auth-err">{err}</div>}
         <button className="btn" disabled={busy}>{busy ? "Saving…" : "Continue →"}</button>
       </form>
@@ -101,10 +125,21 @@ function Onboarding({ onDone }: { onDone: () => void }) {
 
 /* ---------------- Home: personalized marketing landing page built from the profile ---------------- */
 function Home({ profile }: { profile: Profile }) {
-  // Color is auto-decided per user from a stable seed — no theme-switcher UI.
+  // Color is auto-decided per user: gender picks a warm/cool family, age offsets within it,
+  // company keeps it stable — no theme-switcher UI.
   useEffect(() => {
-    applyTheme(pickTheme(profile.company || profile.email || profile.id));
-  }, [profile.company, profile.email, profile.id]);
+    applyTheme(pickThemeFor(profile));
+  }, [profile.gender, profile.age_group, profile.company, profile.email, profile.id]);
+
+  // Content tone varies by age group (copy only — gender drives color, not copy).
+  const TONE: Record<string, { cta: string; value: string; note: string }> = {
+    "18-24": { cta: "Let's go",         value: "Made for a new generation —", note: "Fresh, fast, and built for momentum." },
+    "25-34": { cta: "Get started",      value: "Built for ambitious teams —",  note: "Move fast and grow with confidence." },
+    "35-44": { cta: "Get in touch",     value: "Built for professionals —",    note: "Proven, practical, and results-focused." },
+    "45-54": { cta: "Talk to us",       value: "Built on experience —",        note: "Established, dependable, and thorough." },
+    "55+":   { cta: "Connect with us",  value: "Built on trust —",             note: "Time-tested, reliable, and personal." },
+  };
+  const tone = TONE[profile.age_group || ""] ?? TONE["35-44"];
 
   // Derive copy strictly from real profile fields — no fabricated claims/metrics.
   const company = profile.company?.trim() || null;
@@ -128,11 +163,11 @@ function Home({ profile }: { profile: Profile }) {
   else if (audience) subhead = `Built for ${audience}.`;
   else if (company) subhead = company;
 
-  // Positioning one-liner for the value band.
+  // Positioning one-liner for the value band — prefixed with the age-driven tone.
   let positioning: string | null = null;
-  if (audience) positioning = `Built for ${audience}.`;
-  else if (industry) positioning = `Built for ${industry}.`;
-  else if (company) positioning = `This is ${company}.`;
+  if (audience) positioning = `${tone.value} ${audience}`;
+  else if (industry) positioning = `${tone.value} ${industry}`;
+  else if (company) positioning = `${tone.value} ${company}`;
 
   // Three honest benefit angles, only included when their source field exists.
   const benefits: { n: string; title: string; body: string }[] = [];
@@ -160,7 +195,7 @@ function Home({ profile }: { profile: Profile }) {
   while (steps.length < 3) steps.push("Stay in touch as things grow");
   const steps3 = steps.slice(0, 3);
 
-  function Cta({ label = "Get in touch", secondary = false }: { label?: string; secondary?: boolean }) {
+  function Cta({ label = tone.cta, secondary = false }: { label?: string; secondary?: boolean }) {
     const cls = secondary ? "lp-cta lp-cta-secondary" : "lp-cta";
     return websiteHref
       ? <a className={cls} href={websiteHref} target="_blank" rel="noreferrer">{label}</a>
@@ -190,6 +225,7 @@ function Home({ profile }: { profile: Profile }) {
             {industry && <div className="lp-eyebrow">{industry}</div>}
             <h1 className="lp-title">{headline}</h1>
             {subhead && <p className="lp-sub">{subhead}</p>}
+            <p className="lp-note">{tone.note}</p>
             <div className="lp-actions">
               <Cta />
               <a className="lp-cta lp-cta-secondary" href="#what">See how</a>
