@@ -11,6 +11,13 @@ create table if not exists public.profiles (
   full_name   text,
   role        text not null default 'rep' check (role in ('admin','rep')),
   theme       text not null default 'ocean',   -- per-user color scheme (drives the personalised UI)
+  -- self-serve onboarding details (drive the personalised home)
+  company     text,
+  website     text,
+  industry    text,
+  offering    text,                              -- what the user offers
+  audience    text,                              -- who their customers are
+  onboarded   boolean not null default false,
   created_at  timestamptz not null default now()
 );
 
@@ -45,7 +52,7 @@ drop policy if exists "own profile read"   on public.profiles;
 drop policy if exists "own profile update" on public.profiles;
 drop policy if exists "admin reads all profiles" on public.profiles;
 create policy "own profile read"   on public.profiles for select to authenticated using (id = auth.uid());
-create policy "own profile update" on public.profiles for update to authenticated using (id = auth.uid());
+create policy "own profile update" on public.profiles for update to authenticated using (id = auth.uid()) with check (id = auth.uid());
 create policy "admin reads all profiles" on public.profiles for select to authenticated using (public.is_admin());
 
 -- beacons: authenticated dashboard access (anon still has no table policy — uses RPC)
@@ -55,5 +62,6 @@ create policy "admin reads all beacons"     on public.beacons for select to auth
 create policy "rep reads assigned beacons"  on public.beacons for select to authenticated using (assigned_to = auth.uid());
 
 grant select on public.profiles to authenticated;
-grant update (theme) on public.profiles to authenticated;  -- users can change their own color scheme
+-- users can update their own onboarding details + theme (NOT role — no self-escalation)
+grant update (theme, full_name, company, website, industry, offering, audience, onboarded) on public.profiles to authenticated;
 grant select on public.beacons  to authenticated;
